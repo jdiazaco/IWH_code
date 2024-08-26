@@ -7,58 +7,69 @@ lapply(packages, function(package){
   tryCatch({ library(package, character.only = T)},error = function(cond){
     install.packages(package);library(package, character.only = T)
   })})
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-source('0_helper_functions/helper_functions.R')
-
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)); setwd('../..')
+source('IWH_code/2_patent_tm_scraping/0_helper_functions/helper_functions.R')
+helper_functions = ls() 
 
 # import the siren numbers / set up lists to iterate through  -----------------------------------------------
-siren_numbers =fread('0_input_data/StockUniteLegaleHistorique_utf8 2.csv',
-                     select = c('denominationUniteLegale', 'siren'),  colClasses = list(character = "siren"))
-siren_numbers = siren_numbers[denominationUniteLegale!= ""]
-siren_numbers = siren_numbers[!duplicated(siren)]
-siren_numbers = siren_numbers %>% select(siren)
-siren_numbers$category = numeric()
-fwrite(siren_numbers, '1_patent/siren_numbers.csv')
-fwrite(siren_numbers, '2_trademark/siren_numbers.csv')
-
-
-
-##import date file we need to iterate through
-dates = data.frame(start_dates = seq(ymd("1990-01-01"), ymd("2023-01-01"), by="1 weeks"),
-                   end_dates = seq(ymd("1990-01-07"), ymd("2023-01-07"), by="1 weeks"),
-                   completed = 0)
-
-fwrite(dates,'1_patent/dates.csv')
-fwrite(dates,'2_trademark/dates.csv')
-
+# siren_numbers =fread('data/2_patent_tm_scraping/1_raw/1_StockUniteLegaleHistorique_utf8.csv',
+#                select = c('denominationUniteLegale', 'siren'),  colClasses = list(character = "siren")) %>%
+#                .[denominationUniteLegale != ""] %>% .[!duplicated(siren)] %>% select(siren) %>%
+#                .[,category := numeric()]
+# fwrite(siren_numbers, 'data/2_patent_tm_scraping/2_working/patent_siren_numbers.csv')
+# fwrite(siren_numbers, 'data/2_patent_tm_scraping/2_working/tm_siren_numbers.csv')
+# 
+# 
+# ##import date file we need to iterate through
+# dates = data.frame(start_dates = seq(ymd("1990-01-01"), ymd("2023-01-01"), by="1 weeks"),
+#                    end_dates = seq(ymd("1990-01-07"), ymd("2023-01-07"), by="1 weeks"),
+#                    completed = 0)
+# 
+# fwrite(dates,'data/2_patent_tm_scraping/2_working/patent_dates.csv')
+# fwrite(dates,'data/2_patent_tm_scraping/2_working/tm_dates.csv')
+# 
 
 
 # 1 scrape all patent data from the time period ---------------------------------------------------------
-type = '1_patent'
-keep_going = fread(file.path(type, 'dates.csv')) %>% pull(completed) %>% min() == 0
-num_cores = detectCores() - 1
-
-split_dates = ceiling(nrow(df) / x)
+type = 'patent'; num_cores = 1
 
 
-
-while (keep_going){
-  login_info = fread('0_input_data/login_info.csv')
-  i = which(login_info$availability == 0)[1]
+## SET UP THE INPUTS FOR EACH NODE 
+dirlist = dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl(paste0(type,"_dates_"),.)] 
+if (length(dirlist) ==0){
+  dates = fread(paste0('data/2_patent_tm_scraping/2_working/',type,'_dates.csv'))
+}else{
+  dates = lapply(dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl(paste0(type,"_dates_"),.)],function(stub){
+          file_name = paste0('data/2_patent_tm_scraping/2_working/',stub)    
+          output = fread(file_name); file.remove(file_name); return(output)}) %>% rbindlist()
+  fwrite(dates, paste0('data/2_patent_tm_scraping/2_working/',type,'_dates.csv'))
   
-  if(is.na(i)){ # if no available nodes just reset those on cool-down and try again.
-    login_info$availability = 0
-    fwrite(login_info,'0_input_data/login_info.csv')
-  } else{
-    login_info$availability[i] = 1
-    fwrite(login_info,'0_input_data/login_info.csv')
-    scraping_iteration_dates_only(login_info$user_name[i],
-                                  login_info$password[i], type)
-    print(paste('login num:', i))
-  }
-  keep_going = fread(file.path(type, 'dates.csv')) %>% pull(completed) %>% min() == 0
 }
+dates = dates %>% split(., ceiling(seq_len(nrow(.)) / ceiling(nrow(.) / num_cores)))
+for (i in 1:num_cores){fwrite(dates[[i]], paste0('data/2_patent_tm_scraping/2_working/',type,'_dates_',i,'.csv'))}
 
+
+### RUN THE SCRAPING CODE IN PARALLEL
+cl <- makeCluster(num_cores); clusterExport(cl,c(helper_functions,"type"));
+clusterEvalQ(cl, {lapply(packages, library, character.only = T)})
+parLapply(cl,1:num_cores, function(node_num){
+  login_info = fread('IWH_code/2_patent_tm_scraping/0_helper_functions/login_info.csv')
+  while((fread(paste0('data/2_patent_tm_scraping/2_working/',type,'_dates_',node_num,'.csv')) %>% pull(completed) %>% min) == 0){
+    login_index = which(login_info$availability == 0)[1]
+    if(is.na(login_index)){
+      login_info$availability = 0
+    }else{
+      user_name = login_info$user_name[login_index];
+      password = login_info$password[login_index]
+      login_info$availability[login_index] = 1
+      scraping_iteration_dates_only(node_num, user_name, password, type)
+    }
+  }
+})
+stopCluster(cl)
+    
+    
+  
 
 # Scrape all the trademark data from the time period-------------------------------------------
 type = '2_trademark'

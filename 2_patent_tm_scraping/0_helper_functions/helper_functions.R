@@ -131,50 +131,35 @@ scraping_iteration = function(user_name, password, type){
   }
   }
 
-
-scraping_iteration_dates_only = function(user_name, password, type){
-  failed_attempts = data.frame(value = 0); fwrite(failed_attempts, file.path(type,'failed_attempts.csv'))
-
-  while (fread(file.path(type,'failed_attempts.csv')) %>% pull(value) <3 &
-         fread(file.path(type, 'dates.csv')) %>% pull(completed) %>% min() == 0){
-
-    dates <- fread(file.path(type,'dates.csv')) %>% mutate(across(c(start_dates, end_dates), ~as.Date(., format = "%m/%d/%y")))
-    i = which(dates$completed == 0)[1]
-    if (type =="1_patent"){
-    date_string =  paste0('[DEPD=', format(dates$start_dates[i], "%Y%m%d"), ":",
-                        format(dates$end_dates[i], "%Y%m%d"),']')
-    }else{
-      date_string =  paste0('[ApplicationDate=', format(dates$start_dates[i], "%Y%m%d"), ":",
-                            format(dates$end_dates[i], "%Y%m%d"),']')
-    }
-    tryCatch({
-      # Construct and execute the system call
-      system2('0_input_data/scraping_script.sh', args =  c(user_name, password,type,date_string))
-      xml_data = read_xml(paste0(type,'_scraping_output.xml'))
-
-      ## if we don't return data mark search as a failure
-      if (length(xml_find_all(xml_data, "//metadata")) != 1){
-        add_failed_attempt(type)
-      }else{
-        reset_failed_attempts(type)
-        nodes <- xml_find_all(xml_data, "//result")
-
-        ##if we don't need to split up the time period
-        if (length(nodes) != 10000){
-          fwrite(nodes_to_df(nodes), paste0(type, '/results_time/','results_', i, '.csv'))
-        } else{
-          midpoint = ymd(as.Date(floor((as.numeric(dates$start_dates[i]) + as.numeric(dates$end_dates[i])) / 2)))
-          dates = add_row(dates, start_dates = dates$start_dates[i], end_dates = midpoint, completed = 0)
-          dates = add_row(dates, end_dates = dates$end_dates[i], start_dates = midpoint, completed = 0)
-        }
-        dates$completed[i] = 1
-        fwrite(dates,file.path(type,'dates.csv'))
-        # Print progress
-        print(i/nrow(dates))
+scraping_iteration_dates_only = function(node_num, user_name, password, type){
+  failed_attempts = 0
+  date_path = paste0('data/2_patent_tm_scraping/2_working/',type,'_dates_',node_num,'.csv')
+  dates = fread(date_path) %>% mutate(across(-completed, ~as.Date(., format = "%Y%m%d")))
+  
+  while (failed_attempts < 3 & min(dates$completed) == 0){
+    i = which(dates$completed == 0)[1]; date_string = paste0(dates$start_dates[i], ":",dates$end_dates[i]) %>% gsub("-", "", .)
+    if (type =="patent"){date_string =  paste0('[DEPD=', date_string,']')}else{date_string =  paste0('[ApplicationDate=', date_string,']')}
+    system2('IWH_code/2_patent_tm_scraping/0_helper_functions/scraping_script.sh', args =  c(user_name, password,type,date_string, node_num))
+    
+    output = tryCatch({
+      output = read_xml(paste0('data/2_patent_tm_scraping/2_working/scraping_output', node_num,'.xml'))}, 
+      error = function(e){output = 1})
+    
+    if(typeof(output) == "double"){failed_attempts = failed_attempts + 1; print('failed')}else{
+      failed_attempts = 0
+      nodes <- xml_find_all(output, "//result")
+      
+      if (length(nodes) != 10000){
+        fwrite(nodes_to_df(nodes), paste0('data/2_patent_tm_scraping/2_working/',type, "_time/results_",
+        paste0(dates$start_dates[i], "_",dates$end_dates[i]) %>% gsub("-", "", .),".csv"))
+      } else{
+        midpoint = ymd(as.Date(floor((as.numeric(dates$start_dates[i]) + as.numeric(dates$end_dates[i])) / 2)))
+        dates = add_row(dates, start_dates = dates$start_dates[i], end_dates = midpoint, completed = 0)
+        dates = add_row(dates, end_dates = dates$end_dates[i], start_dates = midpoint, completed = 0)
       }
-      }, error = function(e) {
-        add_failed_attempt(type)
-    })
+      dates$completed[i] = 1; fwrite(dates,date_path)
+      print(i/nrow(dates))
+    }
   }
 }
 
