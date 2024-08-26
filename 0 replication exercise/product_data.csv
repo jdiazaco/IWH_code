@@ -1,0 +1,11 @@
+﻿firmid,status,prodfra_plus,year,active_l,active,rev_l,rev
+A,survived,x,2011,T,F,12,0
+A,survived,y,2011,F,T,0,5
+A,survived,z,2011,T,T,18,10
+B,died,x,2011,T,F,5,0
+B,died,y,2011,T,F,3,0
+C,born,x,2011,F,T,0,6
+A,survived,x,2010,T,T,8,12
+A,survived,z,2010,T,T,20,18
+B,survived,x,2010,T,T,3,5
+B,survived,y,2010,T,T,8,3
