@@ -16,7 +16,6 @@ export refresh_token=`cat ${dstring}cookie_${node}.txt | grep refresh_token | aw
 #echo "refresh_token = " $refresh_token
 
 QUERY=$4
-echo $QUERY
 if [ "$type" = "patent" ]; then
 # Make the POST request with the adjusted Cookie header
 curl -X POST -k --tlsv1.2 'https://api-gateway.inpi.fr/services/apidiffusion/api/brevets/search' \

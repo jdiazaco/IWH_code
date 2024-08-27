@@ -93,25 +93,27 @@ scraping_siren_version = function(node_num, user_name, password, type){
       
       if(typeof(scraping_result) == "double"){failed_attempts = failed_attempts + 1; print(paste0('failed ', failed_attempts))
       }else{ # we successfully scraped
+        scraping_result = scraping_result %>% xml_find_all( "//result")
         if (length(scraping_result)==0){  #we know there are no firms with patents in this list 
           output = rbind(output,data.frame(siren = current_numbers, category = 0))
         }else if (length(current_numbers)!=1){  # we know there are firms with patents in this list (but not which one)
           midway_point = floor(length(current_numbers) / 2)
           number_list[[length(number_list)+1]] = current_numbers[1:midway_point]
           number_list[[length(number_list)+1]] = current_numbers[(midway_point+1): length(current_numbers)]
-        }else if (length(xml_data)!=10000){  # we have identified a patenting firm and know all of its patents  
+        }else if (length(scraping_result)!=10000){  # we have identified a patenting firm and know all of its patents  
           paste0('data/2_patent_tm_scraping/2_working/', type,"_siren/results", current_numbers[1], '.csv') %>%
-            fwrite(nodes_to_df(xml_data),.)
+            fwrite(nodes_to_df(scraping_result),.)
           output = rbind(output,data.frame(siren = current_numbers, category = 1))
         }else{  #we have identified a patenting firm, and need to split its patents up by time period 
           output = rbind(output,data.frame(siren = current_numbers, category = 2))
         }
         counter = counter+1; failed_attempts = 0
+        print(paste("counter:",counter, "; number list length:", length(number_list)))
       }
     }
     ## if we exited bc we hit 3 failed attempts, save the counter and number_list; otherwise remove
-    if (failed_attempts == 3){saveRDS(counter, counter_path); saveRDS(number_list, number_path)
-    }else{file.remove(counter_path); file.remove(number_path)}
+    if (failed_attempts == 3){saveRDS(counter, counter_path); saveRDS(number_list, number_path); print('failed out')
+    }else{file.remove(counter_path); file.remove(number_path); print('successfully finished')}
     siren_numbers = merge(siren_numbers, output, by = 'siren', all.x = T)
     siren_numbers = siren_numbers[,category := ifelse(is.na(category.x), category.y, category.x)] %>% select(-c(category.x, category.y))
     fwrite(siren_numbers, siren_path)
