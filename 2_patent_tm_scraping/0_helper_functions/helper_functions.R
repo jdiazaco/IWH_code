@@ -1,7 +1,6 @@
-exclude_from = function(base_list, exclude_elements){
-  return(base_list[!base_list %in% exclude_elements])
-}
 
+
+# process data ------------------------------------------------------------
 word_match <- function(denm, invne){
   tryCatch({
   ## returns true if all words in denm are present in invne
@@ -16,17 +15,9 @@ str_cleaning = function(x){
   x %>% str_trim(.) %>% str_replace(., "&apos;", "'") %>% toupper(.) %>% stri_trans_general(.,"Latin-ASCII")
 }
 
-add_failed_attempt = function(type){
-  failed_attempts = fread(file.path(type,'failed_attempts.csv')); failed_attempts$value = failed_attempts$value + 1
-  fwrite(failed_attempts, file.path(type,'failed_attempts.csv'))
-  print(paste('failed attempt:', failed_attempts))
-}
 
-reset_failed_attempts = function(type){
-  failed_attempts = fread(file.path(type,'failed_attempts.csv')); failed_attempts$value = 0
-  fwrite(failed_attempts, file.path(type,'failed_attempts.csv'))
-}
 
+# scrape data -------------------------------------------------------------
 nodes_to_df <- function(nodes){
   # Convert XML nodes to strings before parallel processing
   nodes_str <- lapply(nodes, function(node){
@@ -120,7 +111,6 @@ scraping_siren_version = function(node_num, user_name, password, type){
   }
 }
 
-
 scraping_date_version = function(node_num, user_name, password, type){
   failed_attempts = 0
   date_path = paste0('data/2_patent_tm_scraping/2_working/',type,'_dates_',node_num,'.csv')
@@ -155,8 +145,20 @@ scraping_date_version = function(node_num, user_name, password, type){
   }
 }
 
-
-
-
+check_progress = function(type){
+  dirlist = dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl(paste0(type,"_siren_numbers_"),.)] 
+  siren_numbers_stubs = lapply(dirlist,function(stub){
+                        file_name = paste0('data/2_patent_tm_scraping/2_working/',stub)    
+                        output = fread(file_name, colClasses = list(character = "siren"))
+                        return(output)}) %>% rbindlist() %>% unique() %>% as.data.table()
+ 
+  siren_numbers = fread(paste0('data/2_patent_tm_scraping/2_working/',type,'_siren_numbers.csv'),
+                  colClasses = list(character = "siren")) %>% unique() %>%
+                  merge(., siren_numbers_stubs, all.x = T, by = 'siren') %>%
+                  .[,category := ifelse(is.na(category.x), category.y, category.x)] %>%
+                  select(-c(category.x, category.y))
+  
+  return(nrow(siren_numbers[!is.na(category)])/ nrow(siren_numbers))
+}
 
 

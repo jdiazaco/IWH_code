@@ -29,7 +29,7 @@ helper_functions = ls()
 # fwrite(dates,'data/2_patent_tm_scraping/2_working/tm_dates.csv')
 
 # 2 scrape all patent data using siren codes  -----------------------------
-type = 'patent'; num_cores = 10
+type = 'patent'; num_cores = 20
 
 ## SET UP THE INPUTS FOR EACH NODE 
 dirlist = dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl(paste0(type,"_siren_numbers_"),.)] 
@@ -37,20 +37,27 @@ if (length(dirlist) ==0){
   siren_numbers = fread(paste0('data/2_patent_tm_scraping/2_working/',type,'_siren_numbers.csv'),
                         colClasses = list(character = "siren"))
 }else{
-  siren_numbers = lapply(dirlist,function(stub){
+    siren_numbers_stubs = lapply(dirlist,function(stub){
     file_name = paste0('data/2_patent_tm_scraping/2_working/',stub)    
     output = fread(file_name, colClasses = list(character = "siren"))
-    file.remove(file_name); return(output)}) %>% rbindlist()
+    file.remove(file_name); return(output)}) %>% rbindlist() %>% unique() %>% as.data.table()
+    
+    siren_numbers = fread(paste0('data/2_patent_tm_scraping/2_working/',type,'_siren_numbers.csv'),
+                    colClasses = list(character = "siren")) %>% unique() %>%
+                    merge(., siren_numbers_stubs, all.x = T, by = 'siren') %>%
+                    .[,category := ifelse(is.na(category.x), category.y, category.x)] %>% select(-c(category.x, category.y))
   fwrite(siren_numbers, paste0('data/2_patent_tm_scraping/2_working/',type,'_siren_numbers.csv'))
 }
-siren_numbers = siren_numbers %>% split(., ceiling(seq_len(nrow(.)) / ceiling(nrow(.) / num_cores)))
+print(nrow(siren_numbers[!is.na(category)])/ nrow(siren_numbers))
+siren_numbers = siren_numbers[is.na(category)] %>% split(., ceiling(seq_len(nrow(.)) / ceiling(nrow(.) / num_cores)))
 for (i in 1:num_cores){fwrite(siren_numbers[[i]], paste0('data/2_patent_tm_scraping/2_working/',type,'_siren_numbers_',i,'.csv'))}
-
+dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl('counter|number_list|cookie|scraping_output', .)] %>% lapply(., function(x){
+  file.remove(file.path('data/2_patent_tm_scraping/2_working/', x))
+ })
 
 ### RUN THE SCRAPING CODE IN PARALLEL
 cl <- makeCluster(num_cores); clusterExport(cl,c(helper_functions,"type"));
 clusterEvalQ(cl, {lapply(packages, library, character.only = T)})
-
 
 parLapply(cl,1:num_cores, function(node_num){
   Sys.sleep(node_num)
@@ -73,8 +80,8 @@ stopCluster(cl)
 
 
 
-# 1 scrape all patent data using application date periods ---------------------------------------------------------
-type = 'patent'; num_cores = 8
+# 2 scrape all patent data using application date periods ---------------------------------------------------------
+type = 'patent'; num_cores = 15
 
 
 ## SET UP THE INPUTS FOR EACH NODE 
