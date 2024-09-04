@@ -45,7 +45,7 @@ output = lapply(c("time","siren"), function(scrape_list){
   }) %>% rbindlist()})
 
 siren_scraped = output[[2]] %>% 
-  .[, .(siren = NA_string_collapse(siren, ",")), by = setdiff(names(.), 'siren')] %>%
+  .[, .(siren = NA_string_collapse(siren, ",",T)), by = setdiff(names(.), 'siren')] %>%
   .[, saturated := str_count(siren, ",") >= str_count(applicant_name, ",")]
 
 
@@ -79,8 +79,12 @@ dene_from_admin = fread("data/2_patent_tm_scraping/2_working/DENE_siren_admin_ve
 siren_active_years = fread("data/2_patent_tm_scraping/2_working/siren_active_years.csv", colClasses = list(character = "siren"))
 
 siren_scraped = fread('data/2_patent_tm_scraping/2_working/patent_siren_scraped_collapsed.csv', colClasses = list(character = "siren")) %>%
-  .[!grepl(",", applicant_name)] %>% select(applicant_name, application_year, siren) %>% unique() %>% 
-  merge(.,dene_from_admin, by.x = c('applicant_name', 'application_year'), by.y = c('dene', 'year'), all = T) %>% 
+  .[!grepl(",", applicant_name)] %>% select(applicant_name, application_year, siren) %>%
+  unique() %>% na.omit()
+
+siren_scraped = siren_scraped %>% merge(.,dene_from_admin, 
+                                        by.x = c('applicant_name', 'application_year'),
+                                        by.y = c('dene', 'year'), all.x = T) %>% 
   .[is.na(dummy)] %>% select(applicant_name, siren) %>% unique() %>% na.omit() %>% 
   merge(.,siren_active_years, by = 'siren')
 
@@ -91,7 +95,9 @@ fwrite(siren_scraped, "data/2_patent_tm_scraping/2_working/DENE_siren_one_to_one
 dene_siren_one_to_one = fread("data/2_patent_tm_scraping/2_working/DENE_siren_one_to_one.csv", colClasses = list(character = "siren"))
 dene_from_admin = fread("data/2_patent_tm_scraping/2_working/DENE_siren_admin_version.csv",  colClasses = list(character = "siren"))
 time_scraped = fread('data/2_patent_tm_scraping/2_working/patent_time_scraped_collapsed.csv', colClasses = list(character = "siren"))
-siren_scraped = fread('data/2_patent_tm_scraping/2_working/patent_siren_scraped_collapsed.csv', colClasses = list(character = "siren")) %>% select(-saturated)
+siren_scraped = fread('data/2_patent_tm_scraping/2_working/patent_siren_scraped_collapsed.csv', colClasses = list(character = "siren")) %>% 
+  select(-c(saturated,applicant_name)) %>% separate_rows(.,siren, sep = ",") %>% as.data.table() %>%
+  .[!is.na(siren)]
 
 merge_cols = c("application_number","publication_number","collection")
 already_ided = fread('data/2_patent_tm_scraping/2_working/patent_siren_scraped_collapsed.csv', 
@@ -106,21 +112,10 @@ final_output = merge(time_scraped, already_ided, by = merge_cols, all.x = T) %>%
         by.y = c('dene', 'year'), all.x = T) %>% 
   merge(., dene_siren_one_to_one, by.x = c('applicant_name', 'application_year'), 
         by.y = c('applicant_name', 'year'), all.x = T) %>% .[, siren := ifelse(is.na(siren.x), siren.y, siren.x)] %>%
-  .[,c('siren.x', 'siren.y') := NULL]
+  .[,c('siren.x', 'siren.y') := NULL] %>% .[!is.na(siren)] %>% .[,applicant_name := NULL]
 
-## collapse the time scraped data back down to the document level (from the document - applicant name level)
-final_output = final_output %>% .[, .(siren = NA_string_collapse(siren, ",", T),
-                                      applicant_name = NA_string_collapse(applicant_name, ",", T)), 
-                                  by = setdiff(names(.), c('siren', 'applicant_name'))]
-
-## merge the time scraped data with siren scraped data and combine their lists of siren codes for each document 
-final_output = final_output %>% merge(., siren_scraped, by = setdiff(names(.), c('siren', 'applicant_name')), all = T) %>%
-  .[,applicant_name := ifelse(is.na(applicant_name.x), applicant_name.y, applicant_name.x)] %>% 
-  .[, c('applicant_name.x', 'applicant_name.y') := NULL] %>% rename_all(~gsub("\\.", "_",.)) %>%
-  .[, `:=`(siren_x = str_split(siren_x, ","),siren_y = str_split(siren_y, ","))]  %>% rowwise() %>% 
-  mutate(siren = union(siren_x, siren_y) %>% NA_string_collapse(., ",", T),
-         siren_x = NULL, siren_y = NULL)
-
+## add the scraped siren data and the scraped time data that we managed to match
+final_output = rbind(final_output, siren_scraped, use.names = T) %>% unique()
 fwrite(final_output, "data/2_patent_tm_scraping/3_final/patent_data.csv")
 
 
