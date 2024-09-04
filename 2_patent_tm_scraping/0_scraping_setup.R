@@ -11,6 +11,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path)); setwd('../..')
 
 
 # Make necessary directories  ---------------------------------------------
+tryCatch({file.rename('IWH_code-main', 'IWH_code')}) # deals with github renaming the directory 
 directories = c("data", 'data/2_patent_tm_scraping',
               paste0('data/2_patent_tm_scraping/', c("1_raw", '2_working', '3_final')),
               paste0('data/2_patent_tm_scraping/2_working/',
