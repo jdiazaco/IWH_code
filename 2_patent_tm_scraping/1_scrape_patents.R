@@ -10,7 +10,7 @@ lapply(packages, function(package){
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)); setwd('../..')
 source('IWH_code/2_patent_tm_scraping/0_helper_functions/helper_functions.R')
 helper_functions = ls() 
-
+check_progress('patent')
 # import the siren numbers / set up lists to iterate through  -----------------------------------------------
 # siren_numbers =fread('data/2_patent_tm_scraping/1_raw/1_StockUniteLegaleHistorique_utf8.csv',
 #                select = c('denominationUniteLegale', 'siren'),  colClasses = list(character = "siren")) %>%
@@ -29,7 +29,7 @@ helper_functions = ls()
 # fwrite(dates,'data/2_patent_tm_scraping/2_working/tm_dates.csv')
 
 # 2 scrape all patent data using siren codes  -----------------------------
-type = 'patent'; num_cores = 20
+type = 'patent'; num_cores = 30
 
 ## SET UP THE INPUTS FOR EACH NODE 
 dirlist = dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl(paste0(type,"_siren_numbers_"),.)] 
@@ -54,6 +54,7 @@ for (i in 1:num_cores){fwrite(siren_numbers[[i]], paste0('data/2_patent_tm_scrap
 dir('data/2_patent_tm_scraping/2_working/') %>% .[grepl('counter|number_list|cookie|scraping_output', .)] %>% lapply(., function(x){
   file.remove(file.path('data/2_patent_tm_scraping/2_working/', x))
  })
+
 
 ### RUN THE SCRAPING CODE IN PARALLEL
 cl <- makeCluster(num_cores); clusterExport(cl,c(helper_functions,"type"));

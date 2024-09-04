@@ -15,6 +15,22 @@ str_cleaning = function(x){
   x %>% str_trim(.) %>% str_replace(., "&apos;", "'") %>% toupper(.) %>% stri_trans_general(.,"Latin-ASCII")
 }
 
+NA_string_collapse =function(x, delimiter, elim_empty_strings){
+  if (elim_empty_strings){ # if we want to remove blanks 
+    if(!all(is.na(x) | x == "")){
+      return(x %>% .[!is.na(.) & x != ""] %>% paste(., collapse = delimiter))
+    }else{
+      return(NA_character_)
+    }
+  }else{ #if we want to remove only NA
+    if(!all(is.na(x))){ 
+      return(x %>% .[!is.na(.)] %>% paste(., collapse = delimiter))
+    }else{
+      return(NA_character_)
+    }
+  }
+}
+
 
 
 # scrape data -------------------------------------------------------------
