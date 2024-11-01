@@ -1,0 +1,55 @@
+\begin{table}
+\centering
+\begin{talltblr}[         %% tabularray outer open
+caption={Regression of firm empl growth on revenue growth. Weight: unweighted. Sample: Firms covered by Prodcom},
+note{}={+ p \num{< 0.1}, * p \num{< 0.05}, ** p \num{< 0.01}, *** p \num{< 0.001}},
+]                     %% tabularray outer close
+{                     %% tabularray inner open
+colspec={Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]Q[]},
+column{1}={halign=l,},
+column{2}={halign=c,},
+column{3}={halign=c,},
+column{4}={halign=c,},
+column{5}={halign=c,},
+column{6}={halign=c,},
+column{7}={halign=c,},
+column{8}={halign=c,},
+column{9}={halign=c,},
+column{10}={halign=c,},
+column{11}={halign=c,},
+column{12}={halign=c,},
+hline{26}={1,2,3,4,5,6,7,8,9,10,11,12}{solid, 0.05em, black},
+}                     %% tabularray inner close
+\toprule
+& (1) & (2) & (3) & (4) & (5) & (6) & (7) & (8) & (9) & (10) & (11) \\ \midrule %% TinyTableHeader
+(Intercept)                   & \num{-1.969}*** &                 &                 &                 &                 &                  &                  &                  &                 &                  &                  \\
+& (\num{0.001})   &                 &                 &                 &                 &                  &                  &                  &                 &                  &                  \\
+nq\_growth                   & \num{0.003}***  & \num{0.003}*** & \num{0.029}*** & \num{0.003}*** & \num{0.029}*** & \num{0.716}***  & \num{0.835}***  & \num{0.007}***  & \num{0.028}*** & \num{0.697}***  & \num{0.813}***  \\
+& (\num{0.001})   & (\num{0.001})  & (\num{0.001})  & (\num{0.001})  & (\num{0.001})  & (\num{0.057})   & (\num{0.075})   & (\num{0.001})   & (\num{0.001})  & (\num{0.045})   & (\num{0.063})   \\
+young                         &                  &                 &                 & \num{-0.001}   & \num{0.001}    &                  &                  &                  &                 & \num{0.001}     & \num{0.001}     \\
+&                  &                 &                 & (\num{0.002})  & (\num{0.002})  &                  &                  &                  &                 & (\num{0.002})   & (\num{0.002})   \\
+nq\_growth × young           &                  &                 &                 & \num{0.001}    & \num{0.000}    &                  &                  &                  &                 & \num{0.000}     & \num{0.000}     \\
+&                  &                 &                 & (\num{0.001})  & (\num{0.001})  &                  &                  &                  &                 & (\num{0.001})   & (\num{0.001})   \\
+sizemedium                    &                  &                 &                 &                 &                 & \num{-0.848}*** & \num{-0.844}*** &                  &                 & \num{-0.832}*** & \num{-0.824}*** \\
+&                  &                 &                 &                 &                 & (\num{0.073})   & (\num{0.072})   &                  &                 & (\num{0.065})   & (\num{0.063})   \\
+sizelarge                     &                  &                 &                 &                 &                 & \num{-1.299}*** & \num{-1.201}*** &                  &                 & \num{-1.287}*** & \num{-1.187}*** \\
+&                  &                 &                 &                 &                 & (\num{0.085})   & (\num{0.073})   &                  &                 & (\num{0.070})   & (\num{0.060})   \\
+sizeextra large               &                  &                 &                 &                 &                 & \num{-1.326}*** & \num{-1.207}*** &                  &                 & \num{-1.313}*** & \num{-1.193}*** \\
+&                  &                 &                 &                 &                 & (\num{0.085})   & (\num{0.073})   &                  &                 & (\num{0.071})   & (\num{0.060})   \\
+nq\_growth × sizemedium      &                  &                 &                 &                 &                 & \num{-0.376}*** & \num{-0.388}*** &                  &                 & \num{-0.348}*** & \num{-0.362}*** \\
+&                  &                 &                 &                 &                 & (\num{0.041})   & (\num{0.042})   &                  &                 & (\num{0.039})   & (\num{0.038})   \\
+nq\_growth × sizelarge       &                  &                 &                 &                 &                 & \num{-0.702}*** & \num{-0.811}*** &                  &                 & \num{-0.680}*** & \num{-0.788}*** \\
+&                  &                 &                 &                 &                 & (\num{0.057})   & (\num{0.075})   &                  &                 & (\num{0.046})   & (\num{0.063})   \\
+nq\_growth × sizeextra large &                  &                 &                 &                 &                 & \num{-0.706}*** & \num{-0.828}*** &                  &                 & \num{-0.684}*** & \num{-0.804}*** \\
+&                  &                 &                 &                 &                 & (\num{0.057})   & (\num{0.075})   &                  &                 & (\num{0.045})   & (\num{0.062})   \\
+superstarTRUE                 &                  &                 &                 &                 &                 &                  &                  & \num{0.010}***  & \num{0.000}    & \num{0.009}***  & \num{0.005}*    \\
+&                  &                 &                 &                 &                 &                  &                  & (\num{0.002})   & (\num{0.003})  & (\num{0.002})   & (\num{0.001})   \\
+nq\_growth × superstarTRUE   &                  &                 &                 &                 &                 &                  &                  & \num{-0.007}*** & \num{0.002}    & \num{-0.005}**  & \num{-0.002}    \\
+&                  &                 &                 &                 &                 &                  &                  & (\num{0.001})   & (\num{0.002})  & (\num{0.001})   & (\num{0.001})   \\
+Num.Obs.                      & \num{73100}     & \num{73100}    & \num{73100}    & \num{73100}    & \num{73100}    & \num{73100}     & \num{73100}     & \num{71826}     & \num{71826}    & \num{71826}     & \num{71826}     \\
+R2                            & \num{0.000}     & \num{0.001}    & \num{0.034}    & \num{0.001}    & \num{0.034}    & \num{0.465}     & \num{0.490}     & \num{0.002}     & \num{0.035}    & \num{0.462}     & \num{0.487}     \\
+R2 Adj.                       & \num{0.000}     & \num{0.001}    & \num{0.031}    & \num{0.001}    & \num{0.031}    & \num{0.465}     & \num{0.488}     & \num{0.001}     & \num{0.031}    & \num{0.462}     & \num{0.485}     \\
+RMSE                          & \num{0.10}      & \num{0.10}     & \num{0.10}     & \num{0.10}     & \num{0.10}     & \num{0.08}      & \num{0.07}      & \num{0.10}      & \num{0.10}     & \num{0.08}      & \num{0.07}      \\
+\bottomrule
+\end{talltblr}
+\end{table}
